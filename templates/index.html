@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Hub{% endblock %}
+
+{% block content %}
+<div class="min-h-screen" data-username="{{ user.username }}">
+    {% include 'components/_header.html' %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Content Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-medium text-gray-900">Welcome, <span class="text-indigo-600">{{ user.username }}</span></h2>
+            <div class="flex items-center gap-3">
+                <button
+                    id="filter-btn"
+                    onclick="toggleFilter()"
+                    class="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition text-sm"
+                    title="Filter agents"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                    </svg>
+                    <span id="filter-label">All</span>
+                </button>
+                <button
+                    onclick="openRegisterModal()"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition"
+                >
+                    + Register Agent
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Loading agents...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            </svg>
+            <h3 class="mt-2 text-lg font-medium text-gray-900">No agents registered</h3>
+            <p class="mt-1 text-gray-500">Get started by registering your first A2A agent.</p>
+            <button
+                onclick="openRegisterModal()"
+                class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+            >
+                Register Agent
+            </button>
+        </div>
+
+        <!-- Agent Grid -->
+        <div id="agent-grid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Agent cards will be inserted here -->
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="hidden flex justify-center items-center gap-2 mt-8">
+            <button onclick="prevPage()" id="prev-btn" class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            <span id="page-info" class="text-sm text-gray-600 px-4"></span>
+            <button onclick="nextPage()" id="next-btn" class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </button>
+        </div>
+    </main>
+</div>
+
+<!-- Register Agent Modal -->
+<div id="register-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-medium text-gray-900">Register New Agent</h3>
+        </div>
+        <form id="register-form" class="px-6 py-4">
+            <div>
+                <label for="agent-url" class="block text-sm font-medium text-gray-700">Agent URL</label>
+                <input
+                    type="url"
+                    id="agent-url"
+                    required
+                    placeholder="http://localhost:8001"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                <p class="mt-1 text-sm text-gray-500">Enter the base URL of your A2A agent</p>
+            </div>
+            <div id="register-error" class="hidden mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm"></div>
+        </form>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-lg">
+            <button
+                type="button"
+                onclick="closeRegisterModal()"
+                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+                Cancel
+            </button>
+            <button
+                type="button"
+                onclick="registerAgent()"
+                id="register-btn"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+                Register
+            </button>
+        </div>
+    </div>
+</div>
+
+{% include 'components/_toast.html' %}
+{% endblock %}

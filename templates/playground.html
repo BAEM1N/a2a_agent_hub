@@ -1,0 +1,769 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Playground - Agent Hub{% endblock %}
+
+{% block content %}
+{% set title = "Agent Playground" %}
+{% set show_back = true %}
+<div class="min-h-screen">
+    {% include 'components/_header.html' %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Panel: Agent Selection & Config -->
+            <div class="lg:col-span-1 space-y-4">
+                <!-- Agent Selector -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h2 class="text-sm font-medium text-gray-500 mb-3">Select Agent</h2>
+                    <select id="agent-select" class="w-full bg-gray-50 text-gray-900 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Loading agents...</option>
+                    </select>
+                </div>
+
+                <!-- Agent Info Card -->
+                <div id="agent-info" class="hidden bg-white rounded-lg shadow-md p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 id="agent-name" class="text-lg font-semibold text-gray-900"></h3>
+                        <span id="agent-health" class="px-2 py-1 text-xs rounded-full"></span>
+                    </div>
+                    <p id="agent-description" class="text-gray-600 text-sm mb-3"></p>
+                    <div class="text-xs text-gray-500 space-y-1">
+                        <p><span class="text-gray-400">Version:</span> <span id="agent-version"></span></p>
+                        <p><span class="text-gray-400">URL:</span> <code id="agent-url" class="bg-gray-100 px-1 rounded"></code></p>
+                    </div>
+
+                    <!-- Skills -->
+                    <div id="agent-skills" class="mt-4">
+                        <h4 class="text-xs text-gray-500 mb-2">Skills</h4>
+                        <div id="skills-list" class="flex flex-wrap gap-1"></div>
+                    </div>
+                </div>
+
+                <!-- Request Config -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h2 class="text-sm font-medium text-gray-500 mb-3">Request Config</h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Method</label>
+                            <select id="method-select" class="w-full bg-gray-50 text-gray-900 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                                <option value="message/send">message/send</option>
+                                <option value="tasks/get">tasks/get</option>
+                                <option value="tasks/cancel">tasks/cancel</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Timeout (seconds)</label>
+                            <input type="number" id="timeout-input" value="30" min="5" max="300"
+                                class="w-full bg-gray-50 text-gray-900 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+                            <label class="text-xs text-gray-500">Streaming Mode</label>
+                            <button type="button" id="streaming-toggle" onclick="toggleStreaming()"
+                                class="relative inline-flex h-5 w-9 items-center rounded-full bg-gray-300 transition-colors">
+                                <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform translate-x-1"></span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400">Stream shows real-time status updates</p>
+                    </div>
+                </div>
+
+                <!-- API Keys (Optional) -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-sm font-medium text-gray-500">API Config (Optional)</h2>
+                        <span class="text-xs text-gray-400">Override agent defaults</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">OpenAI API Key</label>
+                            <input type="password" id="openai-key" placeholder="sk-..."
+                                class="w-full bg-gray-50 text-gray-900 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">OpenAI Base URL</label>
+                            <input type="text" id="openai-base-url" placeholder="https://api.openai.com/v1"
+                                class="w-full bg-gray-50 text-gray-900 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">OpenAI Model</label>
+                            <input type="text" id="openai-model" placeholder="gpt-4.1"
+                                class="w-full bg-gray-50 text-gray-900 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Tavily API Key</label>
+                            <input type="password" id="tavily-key" placeholder="tvly-..."
+                                class="w-full bg-gray-50 text-gray-900 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 font-mono">
+                        </div>
+                        <p class="text-xs text-gray-400">Auto-loaded from Settings. Sent as X- headers.</p>
+                    </div>
+                </div>
+
+                <!-- Custom Headers -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-sm font-medium text-gray-500">Custom Headers</h2>
+                        <button onclick="addCustomHeader()" class="text-xs text-indigo-600 hover:text-indigo-800">+ Add</button>
+                    </div>
+                    <div id="custom-headers-list" class="space-y-2">
+                        <p class="text-xs text-gray-400">Add custom X- headers for the agent</p>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">e.g., Langfuse-Secret-Key → X-Langfuse-Secret-Key</p>
+                </div>
+
+                <!-- History -->
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-sm font-medium text-gray-500">History</h2>
+                        <button onclick="clearHistory()" class="text-xs text-gray-400 hover:text-gray-600">Clear</button>
+                    </div>
+                    <div id="history-list" class="space-y-2 max-h-64 overflow-y-auto">
+                        <p class="text-gray-400 text-xs">No requests yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Request/Response -->
+            <div class="lg:col-span-2 space-y-4">
+                <!-- Request Input -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+                        <span class="text-sm font-medium text-gray-700">Message</span>
+                        <button onclick="sendRequest()" id="send-btn"
+                            class="bg-indigo-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-indigo-700 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
+                            Send
+                        </button>
+                    </div>
+                    <textarea id="message-input" rows="4"
+                        placeholder="Enter your message to the agent..."
+                        class="w-full bg-white text-gray-900 p-4 text-sm focus:outline-none resize-none border-0"></textarea>
+                </div>
+
+                <!-- Raw JSON Request (Collapsible) -->
+                <details class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <summary class="px-4 py-3 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100">
+                        Raw JSON Request
+                    </summary>
+                    <pre id="raw-request" class="p-4 text-xs text-gray-600 font-mono overflow-auto max-h-48 bg-gray-50"></pre>
+                </details>
+
+                <!-- Response -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+                        <span class="text-sm font-medium text-gray-700">Response</span>
+                        <div class="flex items-center gap-3">
+                            <span id="response-status" class="text-xs"></span>
+                            <span id="response-time" class="text-xs text-gray-500"></span>
+                            <button onclick="copyResponse()" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="response-container" class="p-4 min-h-[300px] max-h-[500px] overflow-auto">
+                        <div id="response-placeholder" class="flex flex-col items-center justify-center h-full text-gray-400 py-12">
+                            <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            <p class="text-sm">Send a request to see the response</p>
+                            <p class="text-xs text-gray-300 mt-1">Cmd/Ctrl + Enter to send</p>
+                        </div>
+                        <div id="response-loading" class="hidden flex flex-col items-center justify-center h-full py-12">
+                            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-3"></div>
+                            <p class="text-gray-500 text-sm">Waiting for response...</p>
+                            <div id="task-status" class="hidden mt-3 px-3 py-1.5 rounded-full text-xs font-medium"></div>
+                        </div>
+                        <pre id="response-content" class="hidden text-sm font-mono text-gray-700 whitespace-pre-wrap"></pre>
+                        <div id="response-error" class="hidden text-red-600 text-sm"></div>
+                    </div>
+                </div>
+
+                <!-- Formatted Response (Agent Message) -->
+                <div id="formatted-response" class="hidden bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                        <span class="text-sm font-medium text-gray-700">Agent Response (Formatted)</span>
+                    </div>
+                    <div id="formatted-content" class="p-4 prose prose-sm max-w-none"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+let agents = [];
+let selectedAgent = null;
+let requestHistory = [];
+let customHeaderCount = 0;
+let streamingEnabled = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadAgents();
+    loadHistory();
+    loadSavedSettings();
+    updateRawRequest();
+
+    document.getElementById('message-input').addEventListener('input', updateRawRequest);
+    document.getElementById('method-select').addEventListener('change', updateRawRequest);
+    document.getElementById('agent-select').addEventListener('change', onAgentChange);
+});
+
+// Load saved API settings from user profile
+async function loadSavedSettings() {
+    try {
+        const response = await fetch('/api/settings', { credentials: 'same-origin' });
+        if (response.ok) {
+            const settings = await response.json();
+            // Auto-fill API Config fields
+            if (settings.openai_api_key) {
+                document.getElementById('openai-key').value = settings.openai_api_key;
+            }
+            if (settings.openai_base_url) {
+                document.getElementById('openai-base-url').value = settings.openai_base_url;
+            }
+            if (settings.openai_model) {
+                document.getElementById('openai-model').value = settings.openai_model;
+            }
+            if (settings.tavily_api_key) {
+                document.getElementById('tavily-key').value = settings.tavily_api_key;
+            }
+            // Auto-add Langfuse headers
+            if (settings.langfuse_secret_key) {
+                addCustomHeaderWithValue('Langfuse-Secret-Key', settings.langfuse_secret_key);
+            }
+            if (settings.langfuse_public_key) {
+                addCustomHeaderWithValue('Langfuse-Public-Key', settings.langfuse_public_key);
+            }
+            if (settings.langfuse_base_url) {
+                addCustomHeaderWithValue('Langfuse-Base-Url', settings.langfuse_base_url);
+            }
+            // Auto-add saved custom headers
+            if (settings.custom_headers && typeof settings.custom_headers === 'object') {
+                Object.entries(settings.custom_headers).forEach(([key, value]) => {
+                    addCustomHeaderWithValue(key, value);
+                });
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load saved settings:', e);
+    }
+}
+
+// Add custom header with pre-filled values
+function addCustomHeaderWithValue(key, value) {
+    customHeaderCount++;
+    const list = document.getElementById('custom-headers-list');
+
+    // Remove placeholder text if exists
+    const placeholder = list.querySelector('p.text-gray-400');
+    if (placeholder && placeholder.textContent.includes('Add custom')) {
+        placeholder.remove();
+    }
+
+    const row = document.createElement('div');
+    row.id = `custom-header-${customHeaderCount}`;
+    row.className = 'flex gap-2 items-center';
+    row.innerHTML = `
+        <input type="text" placeholder="Header-Name" value="${key}"
+            class="custom-header-key flex-1 bg-gray-50 text-gray-900 border border-gray-300 rounded px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 font-mono">
+        <input type="text" placeholder="value" value="${value}"
+            class="custom-header-value flex-1 bg-gray-50 text-gray-900 border border-gray-300 rounded px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 font-mono">
+        <button onclick="removeCustomHeader(${customHeaderCount})" class="text-gray-400 hover:text-red-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    `;
+    list.appendChild(row);
+}
+
+async function loadAgents() {
+    try {
+        const response = await fetch('/api/agents', { credentials: 'same-origin' });
+
+        if (!response.ok) {
+            throw new Error('Failed to load agents');
+        }
+
+        agents = await response.json();
+
+        const select = document.getElementById('agent-select');
+        if (Array.isArray(agents) && agents.length > 0) {
+            select.innerHTML = '<option value="">-- Select an agent --</option>' +
+                agents.map(a => `<option value="${a.id}">${a.name || 'Unnamed'} (${a.url})</option>`).join('');
+
+            // Check URL param for preselected agent
+            const urlParams = new URLSearchParams(window.location.search);
+            const agentId = urlParams.get('agent');
+            if (agentId && agents.find(a => a.id == agentId)) {
+                select.value = agentId;
+                onAgentChange();
+            }
+        } else {
+            select.innerHTML = '<option value="">No agents registered</option>';
+        }
+    } catch (error) {
+        console.error('Failed to load agents:', error);
+        document.getElementById('agent-select').innerHTML = '<option value="">Failed to load agents</option>';
+    }
+}
+
+function onAgentChange() {
+    const agentId = document.getElementById('agent-select').value;
+    selectedAgent = agents.find(a => a.id == agentId);
+
+    const infoCard = document.getElementById('agent-info');
+    if (selectedAgent) {
+        infoCard.classList.remove('hidden');
+        document.getElementById('agent-name').textContent = selectedAgent.name || 'Unnamed Agent';
+        document.getElementById('agent-description').textContent = selectedAgent.description || 'No description';
+        document.getElementById('agent-version').textContent = selectedAgent.version || 'N/A';
+        document.getElementById('agent-url').textContent = selectedAgent.url;
+
+        const healthBadge = document.getElementById('agent-health');
+        if (selectedAgent.is_healthy) {
+            healthBadge.textContent = 'Healthy';
+            healthBadge.className = 'px-2 py-1 text-xs rounded-full bg-green-100 text-green-800';
+        } else {
+            healthBadge.textContent = 'Unhealthy';
+            healthBadge.className = 'px-2 py-1 text-xs rounded-full bg-red-100 text-red-800';
+        }
+
+        const skillsList = document.getElementById('skills-list');
+        skillsList.innerHTML = (selectedAgent.skills || []).map(s =>
+            `<span class="skill-badge">${s.name || s.id}</span>`
+        ).join('');
+
+        // Update URL without reload
+        const url = new URL(window.location);
+        url.searchParams.set('agent', selectedAgent.id);
+        window.history.replaceState({}, '', url);
+    } else {
+        infoCard.classList.add('hidden');
+    }
+
+    updateRawRequest();
+}
+
+function updateRawRequest() {
+    const message = document.getElementById('message-input').value;
+    const method = document.getElementById('method-select').value;
+
+    const payload = {
+        jsonrpc: "2.0",
+        id: "request-1",
+        method: method,
+        params: {
+            message: {
+                messageId: "<generated-uuid>",
+                role: "user",
+                parts: [{ type: "text", text: message || "<your message>" }]
+            }
+        }
+    };
+
+    document.getElementById('raw-request').textContent = JSON.stringify(payload, null, 2);
+}
+
+async function sendRequest() {
+    if (!selectedAgent) {
+        alert('Please select an agent first');
+        return;
+    }
+
+    const message = document.getElementById('message-input').value.trim();
+    if (!message) {
+        alert('Please enter a message');
+        return;
+    }
+
+    const btn = document.getElementById('send-btn');
+
+    // Show loading
+    btn.disabled = true;
+    btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Sending...';
+    document.getElementById('response-placeholder').classList.add('hidden');
+    document.getElementById('response-loading').classList.remove('hidden');
+    document.getElementById('response-content').classList.add('hidden');
+    document.getElementById('response-error').classList.add('hidden');
+    document.getElementById('formatted-response').classList.add('hidden');
+    document.getElementById('response-status').textContent = '';
+    document.getElementById('response-time').textContent = '';
+    hideTaskStatus();
+
+    const startTime = Date.now();
+
+    // Get optional API keys
+    const openaiKey = document.getElementById('openai-key').value.trim();
+    const openaiBaseUrl = document.getElementById('openai-base-url').value.trim();
+    const openaiModel = document.getElementById('openai-model').value.trim();
+    const tavilyKey = document.getElementById('tavily-key').value.trim();
+
+    const requestBody = {
+        message,
+        openai_api_key: openaiKey || null,
+        openai_base_url: openaiBaseUrl || null,
+        openai_model: openaiModel || null,
+        tavily_api_key: tavilyKey || null,
+        custom_headers: getCustomHeaders()
+    };
+
+    if (streamingEnabled) {
+        await sendStreamingRequest(requestBody, startTime);
+    } else {
+        await sendSyncRequest(requestBody, startTime);
+    }
+}
+
+async function sendSyncRequest(requestBody, startTime) {
+    const btn = document.getElementById('send-btn');
+
+    try {
+        const response = await fetch(`/api/agents/${selectedAgent.id}/test`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+            credentials: 'same-origin'
+        });
+
+        const elapsed = Date.now() - startTime;
+        const data = await response.json();
+
+        document.getElementById('response-loading').classList.add('hidden');
+        document.getElementById('response-time').textContent = `${elapsed}ms`;
+
+        if (response.ok) {
+            document.getElementById('response-status').innerHTML =
+                '<span class="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">200 OK</span>';
+            document.getElementById('response-content').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('response-content').classList.remove('hidden');
+
+            // Try to extract and format agent message
+            try {
+                const agentMessage = data.response?.result?.history?.find(m => m.role === 'agent');
+                if (agentMessage) {
+                    const textPart = agentMessage.parts?.find(p => p.kind === 'text');
+                    if (textPart) {
+                        document.getElementById('formatted-content').innerHTML = formatMarkdown(textPart.text);
+                        document.getElementById('formatted-response').classList.remove('hidden');
+                    }
+                }
+            } catch (e) {}
+
+            addToHistory(requestBody.message, 'success', elapsed);
+        } else {
+            document.getElementById('response-status').innerHTML =
+                `<span class="px-2 py-0.5 bg-red-100 text-red-800 rounded text-xs">${response.status} Error</span>`;
+            document.getElementById('response-error').textContent = data.detail || JSON.stringify(data);
+            document.getElementById('response-error').classList.remove('hidden');
+
+            addToHistory(requestBody.message, 'error', elapsed);
+        }
+    } catch (error) {
+        const elapsed = Date.now() - startTime;
+        document.getElementById('response-loading').classList.add('hidden');
+        document.getElementById('response-status').innerHTML =
+            '<span class="px-2 py-0.5 bg-red-100 text-red-800 rounded text-xs">Error</span>';
+        document.getElementById('response-error').textContent = error.message;
+        document.getElementById('response-error').classList.remove('hidden');
+        document.getElementById('response-time').textContent = `${elapsed}ms`;
+
+        addToHistory(requestBody.message, 'error', elapsed);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+        </svg> Send`;
+    }
+}
+
+async function sendStreamingRequest(requestBody, startTime) {
+    const btn = document.getElementById('send-btn');
+    let allEvents = [];
+    let finalResponse = null;
+
+    try {
+        const response = await fetch(`/api/agents/${selectedAgent.id}/stream`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const eventData = JSON.parse(line.slice(6));
+                        allEvents.push(eventData);
+
+                        // Handle different event types
+                        if (eventData.error) {
+                            throw new Error(eventData.error);
+                        }
+
+                        // Extract task status from A2A events
+                        const result = eventData.result || eventData;
+                        if (result.status?.state) {
+                            updateTaskStatus(result.status.state, result.status.message || '');
+                        }
+
+                        // Check for final response
+                        if (result.status?.state === 'completed' || result.history) {
+                            finalResponse = result;
+                        }
+                    } catch (e) {
+                        if (e.message !== 'Unexpected end of JSON input') {
+                            console.warn('Failed to parse SSE:', line, e);
+                        }
+                    }
+                }
+            }
+        }
+
+        const elapsed = Date.now() - startTime;
+        document.getElementById('response-loading').classList.add('hidden');
+        document.getElementById('response-time').textContent = `${elapsed}ms`;
+
+        document.getElementById('response-status').innerHTML =
+            '<span class="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">Stream Complete</span>';
+        document.getElementById('response-content').textContent = JSON.stringify(
+            { events: allEvents, final: finalResponse },
+            null, 2
+        );
+        document.getElementById('response-content').classList.remove('hidden');
+
+        // Try to extract and format agent message from final response
+        if (finalResponse?.history) {
+            const agentMessage = finalResponse.history.find(m => m.role === 'agent');
+            if (agentMessage) {
+                const textPart = agentMessage.parts?.find(p => p.kind === 'text');
+                if (textPart) {
+                    document.getElementById('formatted-content').innerHTML = formatMarkdown(textPart.text);
+                    document.getElementById('formatted-response').classList.remove('hidden');
+                }
+            }
+        }
+
+        addToHistory(requestBody.message, 'success', elapsed);
+
+    } catch (error) {
+        const elapsed = Date.now() - startTime;
+        document.getElementById('response-loading').classList.add('hidden');
+        document.getElementById('response-status').innerHTML =
+            '<span class="px-2 py-0.5 bg-red-100 text-red-800 rounded text-xs">Stream Error</span>';
+        document.getElementById('response-error').textContent = error.message;
+        document.getElementById('response-error').classList.remove('hidden');
+        document.getElementById('response-time').textContent = `${elapsed}ms`;
+        updateTaskStatus('failed', error.message);
+
+        addToHistory(requestBody.message, 'error', elapsed);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+        </svg> Send`;
+    }
+}
+
+function formatMarkdown(text) {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-gray-900">$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold mt-4 mb-2 text-gray-900">$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mt-4 mb-2 text-gray-900">$1</h1>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code class="bg-gray-100 px-1 rounded text-sm">$1</code>')
+        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" class="text-indigo-600 hover:underline">$1</a>')
+        .replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>')
+        .replace(/\n\n/g, '</p><p class="my-2">')
+        .replace(/\n/g, '<br>')
+        .replace(/^---$/gm, '<hr class="my-4 border-gray-300">');
+}
+
+function addToHistory(message, status, time) {
+    const entry = {
+        message: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+        status,
+        time,
+        timestamp: new Date().toLocaleTimeString()
+    };
+
+    requestHistory.unshift(entry);
+    if (requestHistory.length > 20) requestHistory.pop();
+
+    localStorage.setItem('playground_history', JSON.stringify(requestHistory));
+    renderHistory();
+}
+
+function loadHistory() {
+    try {
+        requestHistory = JSON.parse(localStorage.getItem('playground_history') || '[]');
+        renderHistory();
+    } catch (e) {
+        requestHistory = [];
+    }
+}
+
+function renderHistory() {
+    const list = document.getElementById('history-list');
+    if (requestHistory.length === 0) {
+        list.innerHTML = '<p class="text-gray-400 text-xs">No requests yet</p>';
+        return;
+    }
+
+    list.innerHTML = requestHistory.map((h, i) => `
+        <div class="flex items-center justify-between text-xs py-1.5 px-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"
+             onclick="document.getElementById('message-input').value='${h.message.replace(/'/g, "\\'")}'; updateRawRequest();">
+            <span class="text-gray-600 truncate flex-1">${h.message}</span>
+            <span class="${h.status === 'success' ? 'text-green-600' : 'text-red-600'} ml-2 font-medium">${h.time}ms</span>
+        </div>
+    `).join('');
+}
+
+function clearHistory() {
+    requestHistory = [];
+    localStorage.removeItem('playground_history');
+    renderHistory();
+}
+
+function copyResponse() {
+    const content = document.getElementById('response-content').textContent;
+    navigator.clipboard.writeText(content).then(() => {
+        const btn = event.target.closest('button');
+        btn.innerHTML = '<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+        setTimeout(() => {
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>';
+        }, 1500);
+    });
+}
+
+// Streaming Toggle
+function toggleStreaming() {
+    streamingEnabled = !streamingEnabled;
+    const toggle = document.getElementById('streaming-toggle');
+    const indicator = toggle.querySelector('span');
+
+    if (streamingEnabled) {
+        toggle.classList.remove('bg-gray-300');
+        toggle.classList.add('bg-indigo-600');
+        indicator.classList.remove('translate-x-1');
+        indicator.classList.add('translate-x-4');
+    } else {
+        toggle.classList.remove('bg-indigo-600');
+        toggle.classList.add('bg-gray-300');
+        indicator.classList.remove('translate-x-4');
+        indicator.classList.add('translate-x-1');
+    }
+}
+
+// Task Status Display
+function updateTaskStatus(state, message = '') {
+    const statusEl = document.getElementById('task-status');
+    statusEl.classList.remove('hidden');
+
+    const stateConfig = {
+        'working': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: '⏳ Working...' },
+        'completed': { bg: 'bg-green-100', text: 'text-green-800', label: '✅ Completed' },
+        'failed': { bg: 'bg-red-100', text: 'text-red-800', label: '❌ Failed' },
+        'canceled': { bg: 'bg-gray-100', text: 'text-gray-800', label: '🚫 Canceled' },
+        'submitted': { bg: 'bg-blue-100', text: 'text-blue-800', label: '📤 Submitted' },
+        'input-required': { bg: 'bg-purple-100', text: 'text-purple-800', label: '⌨️ Input Required' },
+    };
+
+    const config = stateConfig[state] || { bg: 'bg-gray-100', text: 'text-gray-800', label: state };
+
+    statusEl.className = `mt-3 px-3 py-1.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`;
+    statusEl.textContent = message ? `${config.label}: ${message}` : config.label;
+}
+
+function hideTaskStatus() {
+    document.getElementById('task-status').classList.add('hidden');
+}
+
+// Custom Headers Management
+function addCustomHeader() {
+    customHeaderCount++;
+    const list = document.getElementById('custom-headers-list');
+
+    // Remove placeholder text if exists
+    const placeholder = list.querySelector('p.text-gray-400');
+    if (placeholder && placeholder.textContent.includes('Add custom')) {
+        placeholder.remove();
+    }
+
+    const row = document.createElement('div');
+    row.id = `custom-header-${customHeaderCount}`;
+    row.className = 'flex gap-2 items-center';
+    row.innerHTML = `
+        <input type="text" placeholder="Header-Name"
+            class="custom-header-key flex-1 bg-gray-50 text-gray-900 border border-gray-300 rounded px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 font-mono">
+        <input type="text" placeholder="value"
+            class="custom-header-value flex-1 bg-gray-50 text-gray-900 border border-gray-300 rounded px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 font-mono">
+        <button onclick="removeCustomHeader(${customHeaderCount})" class="text-gray-400 hover:text-red-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    `;
+    list.appendChild(row);
+}
+
+function removeCustomHeader(id) {
+    const row = document.getElementById(`custom-header-${id}`);
+    if (row) row.remove();
+
+    // Show placeholder if no headers left
+    const list = document.getElementById('custom-headers-list');
+    if (list.querySelectorAll('.flex').length === 0) {
+        list.innerHTML = '<p class="text-xs text-gray-400">Add custom X- headers for the agent</p>';
+    }
+}
+
+function getCustomHeaders() {
+    const headers = {};
+    const rows = document.querySelectorAll('#custom-headers-list .flex');
+    rows.forEach(row => {
+        const key = row.querySelector('.custom-header-key')?.value.trim();
+        const value = row.querySelector('.custom-header-value')?.value.trim();
+        if (key && value) {
+            headers[key] = value;
+        }
+    });
+    return Object.keys(headers).length > 0 ? headers : null;
+}
+
+// Keyboard shortcut
+document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        sendRequest();
+    }
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<!-- Playground has its own inline scripts, don't load app.js -->
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Agent Hub{% endblock %}
+
+{% block content %}
+{% set title = "Profile" %}
+{% set show_back = true %}
+<div class="min-h-screen">
+    {% include 'components/_header.html' %}
+
+    <!-- Main Content -->
+    <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <p class="text-sm text-gray-500 mb-6">Configure API keys and custom headers for Playground</p>
+
+        <!-- API Config Form -->
+        <form id="profile-form" class="space-y-6">
+            <!-- OpenAI Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">OpenAI</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">API Key</label>
+                        <input type="password" id="openai-key" placeholder="sk-..."
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Base URL (Optional)</label>
+                            <input type="url" id="openai-url" placeholder="https://api.openai.com/v1"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Model (Optional)</label>
+                            <input type="text" id="openai-model" placeholder="gpt-4o"
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tavily Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Tavily</h3>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">API Key</label>
+                    <input type="password" id="tavily-key" placeholder="tvly-..."
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono">
+                </div>
+            </div>
+
+            <!-- Langfuse Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Langfuse (Optional)</h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Secret Key</label>
+                            <input type="password" id="langfuse-secret" placeholder="sk-lf-..."
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Public Key</label>
+                            <input type="text" id="langfuse-public" placeholder="pk-lf-..."
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Base URL</label>
+                        <input type="url" id="langfuse-url" placeholder="https://cloud.langfuse.com"
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Headers Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Custom Headers</h3>
+                        <p class="text-sm text-gray-500 mt-1">Add X- prefixed headers for agents</p>
+                    </div>
+                    <button type="button" onclick="addCustomHeader()"
+                        class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">+ Add Header</button>
+                </div>
+                <div id="custom-headers-list" class="space-y-3">
+                    <!-- Custom headers will be rendered here -->
+                </div>
+                <p class="text-xs text-gray-400 mt-3">e.g., My-Custom-Key → X-My-Custom-Key when sent to agent</p>
+            </div>
+
+            <!-- Save Button -->
+            <div class="flex justify-end gap-3">
+                <a href="/" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" id="save-btn"
+                    class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+                    Save Settings
+                </button>
+            </div>
+        </form>
+    </main>
+</div>
+
+<!-- Toast Notification -->
+{% include 'components/_toast.html' %}
+
+<script>
+let customHeaderCount = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+});
+
+async function loadSettings() {
+    try {
+        const response = await fetch('/api/settings', { credentials: 'same-origin' });
+        if (response.ok) {
+            const settings = await response.json();
+
+            // Fill in API fields
+            document.getElementById('openai-key').value = settings.openai_api_key || '';
+            document.getElementById('openai-url').value = settings.openai_base_url || '';
+            document.getElementById('openai-model').value = settings.openai_model || '';
+            document.getElementById('tavily-key').value = settings.tavily_api_key || '';
+            document.getElementById('langfuse-secret').value = settings.langfuse_secret_key || '';
+            document.getElementById('langfuse-public').value = settings.langfuse_public_key || '';
+            document.getElementById('langfuse-url').value = settings.langfuse_base_url || '';
+
+            // Load custom headers
+            if (settings.custom_headers && typeof settings.custom_headers === 'object') {
+                Object.entries(settings.custom_headers).forEach(([key, value]) => {
+                    addCustomHeader(key, value);
+                });
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load settings:', e);
+    }
+}
+
+function addCustomHeader(key = '', value = '') {
+    customHeaderCount++;
+    const list = document.getElementById('custom-headers-list');
+
+    const row = document.createElement('div');
+    row.id = `header-row-${customHeaderCount}`;
+    row.className = 'flex gap-3 items-center';
+    row.innerHTML = `
+        <input type="text" placeholder="Header-Name" value="${escapeHtml(key)}"
+            class="header-key flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono">
+        <input type="text" placeholder="value" value="${escapeHtml(value)}"
+            class="header-value flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-mono">
+        <button type="button" onclick="removeCustomHeader(${customHeaderCount})"
+            class="text-gray-400 hover:text-red-500 p-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    `;
+    list.appendChild(row);
+}
+
+function removeCustomHeader(id) {
+    const row = document.getElementById(`header-row-${id}`);
+    if (row) row.remove();
+}
+
+function getCustomHeaders() {
+    const headers = {};
+    const rows = document.querySelectorAll('#custom-headers-list > div');
+    rows.forEach(row => {
+        const key = row.querySelector('.header-key')?.value.trim();
+        const value = row.querySelector('.header-value')?.value.trim();
+        if (key && value) {
+            headers[key] = value;
+        }
+    });
+    return Object.keys(headers).length > 0 ? headers : null;
+}
+
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const config = {
+        openai_api_key: document.getElementById('openai-key').value || null,
+        openai_base_url: document.getElementById('openai-url').value || null,
+        openai_model: document.getElementById('openai-model').value || null,
+        tavily_api_key: document.getElementById('tavily-key').value || null,
+        langfuse_secret_key: document.getElementById('langfuse-secret').value || null,
+        langfuse_public_key: document.getElementById('langfuse-public').value || null,
+        langfuse_base_url: document.getElementById('langfuse-url').value || null,
+        custom_headers: getCustomHeaders(),
+    };
+
+    try {
+        const response = await fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config),
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) throw new Error('Failed to save settings');
+
+        showToast('Settings saved successfully!');
+    } catch (e) {
+        alert('Failed to save settings: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Settings';
+    }
+});
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    if (!toast || !toastMessage) return;
+
+    toastMessage.textContent = message;
+    toast.classList.remove('hidden');
+    toast.classList.add('toast-enter');
+
+    setTimeout(() => {
+        toast.classList.remove('toast-enter');
+        toast.classList.add('toast-exit');
+        setTimeout(() => {
+            toast.classList.add('hidden');
+            toast.classList.remove('toast-exit');
+        }, 300);
+    }, 3000);
+}
+</script>
+{% endblock %}
