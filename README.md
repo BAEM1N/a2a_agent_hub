@@ -64,13 +64,15 @@ Open http://localhost:8000
     <td><img src="docs/images/login.png" width="400"/></td>
     <td><img src="docs/images/main-with-agent.png" width="400"/></td>
   </tr>
+  <tr>
+    <td align="center"><b>Profile</b></td>
+    <td align="center"><b>Playground</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/profile.png" width="400"/></td>
+    <td><img src="docs/images/playground.png" width="400"/></td>
+  </tr>
 </table>
-
-<p align="center">
-  <img src="docs/images/playground.png" width="700"/>
-  <br/>
-  <em>Agent Playground - 에이전트 테스트 화면</em>
-</p>
 
 ## How It Works
 
