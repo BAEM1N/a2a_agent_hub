@@ -187,7 +187,7 @@ graph.add_node("chat", chat_node)
 
 ## Related Projects
 
-- [langgraph-a2a-adapters](../langgraph-a2a-adapters) — LangGraph ↔ A2A protocol adapter
+- [langgraph-a2a-adapters](https://github.com/BAEM1N/langgraph_a2a_adapters) — LangGraph ↔ A2A protocol adapter
 
 ## License
 
