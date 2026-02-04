@@ -43,8 +43,8 @@ You (API Keys) + Someone's Agent (Logic) = Working AI Agent
 
 ```bash
 # Install
-git clone https://github.com/your-org/agent-hub.git
-cd agent-hub
+git clone https://github.com/BAEM1N/a2a_agent_hub.git
+cd a2a_agent_hub
 pip install -r requirements.txt  # or: uv sync
 
 # Run
